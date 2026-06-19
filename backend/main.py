@@ -7,6 +7,7 @@ from backend.ai.skill_extractor import extract_skills
 from backend.ai.profile_builder import build_profile
 from backend.ai.job_matcher import calculate_match
 from backend.ai.career_recommender import rank_careers
+from backend.ai.semantic_matcher import semantic_match
 
 app = FastAPI()
 
@@ -98,4 +99,22 @@ async def career_recommend(file: UploadFile = File(...)):
     return {
         "profile": profile,
         "recommendation": recommendation
+    }
+
+
+@app.post("/semantic-match")
+async def semantic_match_api(file: UploadFile = File(...), job_description: str = ""):
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        tmp.write(await file.read())
+        file_path = tmp.name
+
+    cv_text = extract_text_from_pdf(file_path)
+
+    result = semantic_match(cv_text, job_description)
+
+    os.remove(file_path)
+
+    return {
+        "result": result
     }
