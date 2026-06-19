@@ -7,18 +7,28 @@ from backend.ai.skill_extractor import extract_skills
 app = FastAPI()
 
 
+@app.get("/")
+def root():
+    return {"message": "CareerPilot AI is running"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "healthy"}
+
+
 @app.post("/upload-cv")
 async def upload_cv(file: UploadFile = File(...)):
 
-    # Create a temporary file (avoids storing files in the repository)
+    # Create temporary file (NO persistent storage)
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
         tmp.write(await file.read())
         file_path = tmp.name
 
-    # Extract raw text from the uploaded PDF
+    # Extract text from PDF
     text = extract_text_from_pdf(file_path)
 
-    # Extract skills using NLP-based extractor
+    # Extract skills using AI/NLP
     skills = extract_skills(text)
 
     return {
