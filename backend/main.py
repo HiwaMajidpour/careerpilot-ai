@@ -8,6 +8,7 @@ from backend.ai.profile_builder import build_profile
 from backend.ai.job_matcher import calculate_match
 from backend.ai.career_recommender import rank_careers
 from backend.ai.semantic_matcher import semantic_match
+from backend.ai.career_coach import generate_career_advice
 
 app = FastAPI()
 
@@ -117,4 +118,32 @@ async def semantic_match_api(file: UploadFile = File(...), job_description: str 
 
     return {
         "result": result
+    }
+
+
+@app.post("/career-ai")
+async def career_ai(file: UploadFile = File(...), job_description: str = ""):
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        tmp.write(await file.read())
+        file_path = tmp.name
+
+    cv_text = extract_text_from_pdf(file_path)
+
+    skills = extract_skills(cv_text)
+    profile = build_profile(cv_text)
+
+    match_result = calculate_match(cv_text, job_description, skills)
+
+    semantic_result = semantic_match(cv_text, job_description)
+
+    advice = generate_career_advice(profile, match_result)
+
+    os.remove(file_path)
+
+    return {
+        "profile": profile,
+        "match": match_result,
+        "semantic": semantic_result,
+        "career_coach": advice
     }
