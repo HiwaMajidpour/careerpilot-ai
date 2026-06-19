@@ -5,6 +5,7 @@ import os
 from backend.cv_parser import extract_text_from_pdf
 from backend.ai.skill_extractor import extract_skills
 from backend.ai.profile_builder import build_profile
+from backend.ai.job_matcher import calculate_match
 
 app = FastAPI()
 
@@ -44,4 +45,26 @@ async def upload_cv(file: UploadFile = File(...)):
         "filename": file.filename,
         "skills": skills,
         "profile": profile
+    }
+
+
+@app.post("/match-job")
+async def match_job(file: UploadFile = File(...), job_description: str = ""):
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        tmp.write(await file.read())
+        file_path = tmp.name
+
+    text = extract_text_from_pdf(file_path)
+
+    skills = extract_skills(text)
+    profile = build_profile(text)
+
+    match_result = calculate_match(text, job_description, skills)
+
+    os.remove(file_path)
+
+    return {
+        "profile": profile,
+        "match": match_result
     }
