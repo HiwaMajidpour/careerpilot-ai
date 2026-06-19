@@ -6,6 +6,7 @@ from backend.cv_parser import extract_text_from_pdf
 from backend.ai.skill_extractor import extract_skills
 from backend.ai.profile_builder import build_profile
 from backend.ai.job_matcher import calculate_match
+from backend.ai.career_recommender import rank_careers
 
 app = FastAPI()
 
@@ -67,4 +68,34 @@ async def match_job(file: UploadFile = File(...), job_description: str = ""):
     return {
         "profile": profile,
         "match": match_result
+    }
+
+
+@app.post("/career-recommend")
+async def career_recommend(file: UploadFile = File(...)):
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        tmp.write(await file.read())
+        file_path = tmp.name
+
+    text = extract_text_from_pdf(file_path)
+
+    skills = extract_skills(text)
+    profile = build_profile(text)
+
+    jobs = [
+        {"title": "Backend Developer", "skills": [
+            "python", "fastapi", "docker"]},
+        {"title": "Data Engineer", "skills": ["sql", "python", "aws"]},
+        {"title": "ML Engineer", "skills": [
+            "python", "nlp", "machine learning"]}
+    ]
+
+    recommendation = rank_careers(text, skills, jobs)
+
+    os.remove(file_path)
+
+    return {
+        "profile": profile,
+        "recommendation": recommendation
     }
