@@ -1,50 +1,24 @@
 from fastapi import FastAPI, UploadFile, File
-import os
+import tempfile
 
 from backend.cv_parser import extract_text_from_pdf
 from backend.ai.skill_extractor import extract_skills
 
-
-app = FastAPI(
-    title="CareerPilot AI",
-    version="0.1.0"
-)
-
-UPLOAD_DIR = "uploads"
+app = FastAPI()
 
 
-@app.get("/")
-def root():
-    return {
-        "message": "CareerPilot AI is running"
-    }
-
-
-@app.get("/health")
-def health():
-    return {
-        "status": "healthy"
-    }
-
-
-# =========================
-# CV Upload + Parsing API
-# =========================
 @app.post("/upload-cv")
 async def upload_cv(file: UploadFile = File(...)):
 
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    # Create a temporary file (avoids storing files in the repository)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        tmp.write(await file.read())
+        file_path = tmp.name
 
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
-
-    # save file
-    with open(file_path, "wb") as f:
-        f.write(await file.read())
-
-    # extract text
+    # Extract raw text from the uploaded PDF
     text = extract_text_from_pdf(file_path)
 
-    # extract skills (AI part)
+    # Extract skills using NLP-based extractor
     skills = extract_skills(text)
 
     return {
