@@ -1,52 +1,65 @@
-from backend.ai.career_chat import career_chat
-from backend.ai.career_coach import generate_career_advice
-from backend.ai.semantic_matcher import semantic_match
-from backend.ai.career_recommender import rank_careers
-from backend.ai.job_matcher import calculate_match
-from backend.ai.profile_builder import build_profile
-from backend.ai.skill_extractor import extract_skills
-from backend.cv_parser import extract_text_from_pdf
 from fastapi import FastAPI, UploadFile, File
 from dotenv import load_dotenv
-import tempfile
+
 import os
+import tempfile
+
+from backend.cv_parser import extract_text_from_pdf
+
+from backend.ai.skill_extractor import extract_skills
+from backend.ai.profile_builder import build_profile
+from backend.ai.job_matcher import calculate_match
+from backend.ai.career_recommender import (
+    rank_careers,
+    recommend_careers
+)
+from backend.ai.semantic_matcher import semantic_match
+from backend.ai.career_coach import generate_career_advice
+from backend.ai.career_chat import career_chat
 
 load_dotenv()
 
 HF_TOKEN = os.getenv("HF_TOKEN")
 
-app = FastAPI()
+app = FastAPI(
+    title="CareerPilot AI",
+    version="0.1.0"
+)
 
-# System temporary directory (safe for production)
+# System temporary directory
 TEMP_DIR = tempfile.gettempdir()
 
 
 @app.get("/")
 def root():
-    return {"message": "CareerPilot AI is running"}
+    return {
+        "message": "CareerPilot AI is running"
+    }
 
 
 @app.get("/health")
 def health():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy"
+    }
 
 
 @app.post("/upload-cv")
 async def upload_cv(file: UploadFile = File(...)):
 
-    # Create temporary file (no persistent storage)
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf", dir=TEMP_DIR) as tmp:
+    with tempfile.NamedTemporaryFile(
+        delete=False,
+        suffix=".pdf",
+        dir=TEMP_DIR
+    ) as tmp:
         tmp.write(await file.read())
         file_path = tmp.name
 
-    # Extract text from PDF
     text = extract_text_from_pdf(file_path)
 
-    # AI processing
     skills = extract_skills(text)
     profile = build_profile(text)
 
-    # Cleanup temp file
     os.remove(file_path)
 
     return {
@@ -57,18 +70,29 @@ async def upload_cv(file: UploadFile = File(...)):
 
 
 @app.post("/match-job")
-async def match_job(file: UploadFile = File(...), job_description: str = ""):
+async def match_job(
+    file: UploadFile = File(...),
+    job_description: str = ""
+):
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+    with tempfile.NamedTemporaryFile(
+        delete=False,
+        suffix=".pdf",
+        dir=TEMP_DIR
+    ) as tmp:
         tmp.write(await file.read())
         file_path = tmp.name
 
-    text = extract_text_from_pdf(file_path)
+    cv_text = extract_text_from_pdf(file_path)
 
-    skills = extract_skills(text)
-    profile = build_profile(text)
+    skills = extract_skills(cv_text)
+    profile = build_profile(cv_text)
 
-    match_result = calculate_match(text, job_description, skills)
+    match_result = calculate_match(
+        cv_text,
+        job_description,
+        skills
+    )
 
     os.remove(file_path)
 
@@ -79,26 +103,43 @@ async def match_job(file: UploadFile = File(...), job_description: str = ""):
 
 
 @app.post("/career-recommend")
-async def career_recommend(file: UploadFile = File(...)):
+async def career_recommend(
+    file: UploadFile = File(...)
+):
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+    with tempfile.NamedTemporaryFile(
+        delete=False,
+        suffix=".pdf",
+        dir=TEMP_DIR
+    ) as tmp:
         tmp.write(await file.read())
         file_path = tmp.name
 
-    text = extract_text_from_pdf(file_path)
+    cv_text = extract_text_from_pdf(file_path)
 
-    skills = extract_skills(text)
-    profile = build_profile(text)
+    skills = extract_skills(cv_text)
+    profile = build_profile(cv_text)
 
     jobs = [
-        {"title": "Backend Developer", "skills": [
-            "python", "fastapi", "docker"]},
-        {"title": "Data Engineer", "skills": ["sql", "python", "aws"]},
-        {"title": "ML Engineer", "skills": [
-            "python", "nlp", "machine learning"]}
+        {
+            "title": "Backend Developer",
+            "skills": ["python", "fastapi", "docker"]
+        },
+        {
+            "title": "Data Engineer",
+            "skills": ["sql", "python", "aws"]
+        },
+        {
+            "title": "ML Engineer",
+            "skills": ["python", "nlp", "machine learning"]
+        }
     ]
 
-    recommendation = rank_careers(text, skills, jobs)
+    recommendation = rank_careers(
+        cv_text,
+        skills,
+        jobs
+    )
 
     os.remove(file_path)
 
@@ -109,15 +150,25 @@ async def career_recommend(file: UploadFile = File(...)):
 
 
 @app.post("/semantic-match")
-async def semantic_match_api(file: UploadFile = File(...), job_description: str = ""):
+async def semantic_match_api(
+    file: UploadFile = File(...),
+    job_description: str = ""
+):
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+    with tempfile.NamedTemporaryFile(
+        delete=False,
+        suffix=".pdf",
+        dir=TEMP_DIR
+    ) as tmp:
         tmp.write(await file.read())
         file_path = tmp.name
 
     cv_text = extract_text_from_pdf(file_path)
 
-    result = semantic_match(cv_text, job_description)
+    result = semantic_match(
+        cv_text,
+        job_description
+    )
 
     os.remove(file_path)
 
@@ -127,9 +178,16 @@ async def semantic_match_api(file: UploadFile = File(...), job_description: str 
 
 
 @app.post("/career-ai")
-async def career_ai(file: UploadFile = File(...), job_description: str = ""):
+async def career_ai(
+    file: UploadFile = File(...),
+    job_description: str = ""
+):
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+    with tempfile.NamedTemporaryFile(
+        delete=False,
+        suffix=".pdf",
+        dir=TEMP_DIR
+    ) as tmp:
         tmp.write(await file.read())
         file_path = tmp.name
 
@@ -138,11 +196,26 @@ async def career_ai(file: UploadFile = File(...), job_description: str = ""):
     skills = extract_skills(cv_text)
     profile = build_profile(cv_text)
 
-    match_result = calculate_match(cv_text, job_description, skills)
+    match_result = calculate_match(
+        cv_text,
+        job_description,
+        skills
+    )
 
-    semantic_result = semantic_match(cv_text, job_description)
+    career_plan = recommend_careers(
+        skills,
+        match_result["match_score"]
+    )
 
-    advice = generate_career_advice(profile, match_result)
+    semantic_result = semantic_match(
+        cv_text,
+        job_description
+    )
+
+    advice = generate_career_advice(
+        profile,
+        match_result
+    )
 
     os.remove(file_path)
 
@@ -150,6 +223,7 @@ async def career_ai(file: UploadFile = File(...), job_description: str = ""):
         "profile": profile,
         "match": match_result,
         "semantic": semantic_result,
+        "career_plan": career_plan,
         "career_coach": advice
     }
 
@@ -160,7 +234,11 @@ async def career_chat_api(
     file: UploadFile = File(...)
 ):
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+    with tempfile.NamedTemporaryFile(
+        delete=False,
+        suffix=".pdf",
+        dir=TEMP_DIR
+    ) as tmp:
         tmp.write(await file.read())
         file_path = tmp.name
 
@@ -169,13 +247,27 @@ async def career_chat_api(
     skills = extract_skills(cv_text)
     profile = build_profile(cv_text)
 
-    job_description = "software engineer backend python fastapi"
+    job_description = (
+        "software engineer backend python fastapi"
+    )
 
-    match = calculate_match(cv_text, job_description, skills)
+    match_result = calculate_match(
+        cv_text,
+        job_description,
+        skills
+    )
 
-    advice = generate_career_advice(profile, match)
+    advice = generate_career_advice(
+        profile,
+        match_result
+    )
 
-    response = career_chat(question, profile, match, advice)
+    response = career_chat(
+        question,
+        profile,
+        match_result,
+        advice
+    )
 
     os.remove(file_path)
 

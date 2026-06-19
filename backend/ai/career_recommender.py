@@ -1,3 +1,47 @@
+def recommend_careers(skills: list, match_score: int):
+
+    recommendations = []
+
+    skills_lower = [skill.lower() for skill in skills]
+
+    # Backend Developer
+    if "python" in skills_lower or "fastapi" in skills_lower:
+        recommendations.append("Backend Developer")
+
+    # Data Scientist
+    if (
+        "machine learning" in skills_lower
+        or "nlp" in skills_lower
+        or "deep learning" in skills_lower
+    ):
+        recommendations.append("Data Scientist")
+
+    # DevOps Engineer
+    if "docker" in skills_lower or "aws" in skills_lower:
+        recommendations.append("DevOps Engineer")
+
+    # Fallback recommendation
+    if not recommendations:
+        recommendations.append("Junior Software Engineer")
+
+    learning_path = []
+
+    if "docker" not in skills_lower:
+        learning_path.append("Learn Docker")
+
+    if "aws" not in skills_lower:
+        learning_path.append("Learn AWS")
+
+    if "git" not in skills_lower:
+        learning_path.append("Master Git")
+
+    return {
+        "career_recommendations": recommendations,
+        "learning_path": learning_path,
+        "readiness_score": match_score
+    }
+
+
 def rank_careers(cv_text: str, skills: list, jobs: list):
 
     cv_lower = cv_text.lower()
@@ -10,39 +54,46 @@ def rank_careers(cv_text: str, skills: list, jobs: list):
         job_skills = job["skills"]
 
         matched = 0
-        missing = 0
 
         for skill in job_skills:
             if skill.lower() in cv_lower:
                 matched += 1
-            else:
-                missing += 1
 
-        if len(job_skills) == 0:
-            score = 0
-        else:
-            score = int((matched / len(job_skills)) * 100)
+        score = (
+            int((matched / len(job_skills)) * 100)
+            if job_skills
+            else 0
+        )
 
         results.append({
             "job": job_title,
             "score": score
         })
 
-    # Sort best matches
-    results = sorted(results, key=lambda x: x["score"], reverse=True)
+    results.sort(
+        key=lambda x: x["score"],
+        reverse=True
+    )
 
-    # AI-like advice logic
-    top_job = results[0]["job"] if results else "Unknown"
+    top_job = (
+        results[0]["job"]
+        if results
+        else "Unknown"
+    )
 
-    all_missing = []
+    missing_skills = []
+
     for job in jobs:
         for skill in job["skills"]:
             if skill.lower() not in cv_lower:
-                all_missing.append(skill)
+                missing_skills.append(skill)
 
-    unique_missing = list(set(all_missing))
+    missing_skills = list(set(missing_skills))
 
-    advice = f"Focus on {', '.join(unique_missing[:3])} to improve chances in {top_job}"
+    advice = (
+        f"Focus on {', '.join(missing_skills[:3])} "
+        f"to improve chances in {top_job}"
+    )
 
     return {
         "top_matches": results,
