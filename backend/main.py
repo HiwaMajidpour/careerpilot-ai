@@ -9,6 +9,7 @@ from backend.ai.job_matcher import calculate_match
 from backend.ai.career_recommender import rank_careers
 from backend.ai.semantic_matcher import semantic_match
 from backend.ai.career_coach import generate_career_advice
+from backend.ai.career_chat import career_chat
 
 app = FastAPI()
 
@@ -146,4 +147,34 @@ async def career_ai(file: UploadFile = File(...), job_description: str = ""):
         "match": match_result,
         "semantic": semantic_result,
         "career_coach": advice
+    }
+
+
+@app.post("/career-chat")
+async def career_chat_api(
+    question: str,
+    file: UploadFile = File(...)
+):
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        tmp.write(await file.read())
+        file_path = tmp.name
+
+    cv_text = extract_text_from_pdf(file_path)
+
+    skills = extract_skills(cv_text)
+    profile = build_profile(cv_text)
+
+    job_description = "software engineer backend python fastapi"
+
+    match = calculate_match(cv_text, job_description, skills)
+
+    advice = generate_career_advice(profile, match)
+
+    response = career_chat(question, profile, match, advice)
+
+    os.remove(file_path)
+
+    return {
+        "answer": response
     }
