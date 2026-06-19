@@ -1,15 +1,19 @@
+from backend.ai.career_chat import career_chat
+from backend.ai.career_coach import generate_career_advice
+from backend.ai.semantic_matcher import semantic_match
+from backend.ai.career_recommender import rank_careers
+from backend.ai.job_matcher import calculate_match
+from backend.ai.profile_builder import build_profile
+from backend.ai.skill_extractor import extract_skills
+from backend.cv_parser import extract_text_from_pdf
 from fastapi import FastAPI, UploadFile, File
+from dotenv import load_dotenv
 import tempfile
 import os
 
-from backend.cv_parser import extract_text_from_pdf
-from backend.ai.skill_extractor import extract_skills
-from backend.ai.profile_builder import build_profile
-from backend.ai.job_matcher import calculate_match
-from backend.ai.career_recommender import rank_careers
-from backend.ai.semantic_matcher import semantic_match
-from backend.ai.career_coach import generate_career_advice
-from backend.ai.career_chat import career_chat
+load_dotenv()
+
+HF_TOKEN = os.getenv("HF_TOKEN")
 
 app = FastAPI()
 
