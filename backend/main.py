@@ -32,7 +32,9 @@ async def upload_cv(file: UploadFile = File(...)):
     with open(file_path, "wb") as f:
         f.write(await file.read())
 
+    text = extract_text_from_pdf(file_path)
+
     return {
         "filename": file.filename,
-        "status": "uploaded"
+        "text_preview": text[:1000]
     }
